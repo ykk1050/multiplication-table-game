@@ -979,7 +979,7 @@ body {
     </div>
 
     <div class="answer-input-row">
-      <input type="text" class="answer-input" id="answerInput" maxlength="3" inputmode="numeric" autocomplete="off" placeholder="?" />
+      <input type="text" class="answer-input" id="answerInput" maxlength="3" inputmode="none" autocomplete="off" placeholder="?" readonly />
     </div>
 
     <div class="numpad" id="numpad">
@@ -1029,7 +1029,7 @@ body {
     <span id="bqNum1">2</span> <span class="op">×</span> <span id="bqNum2">3</span> <span class="eq">=</span> ?
   </div>
   <div class="boss-input-row">
-    <input type="text" class="boss-answer-input" id="bossAnswerInput" maxlength="3" inputmode="numeric" autocomplete="off" placeholder="?" />
+    <input type="text" class="boss-answer-input" id="bossAnswerInput" maxlength="3" inputmode="none" autocomplete="off" placeholder="?" readonly />
   </div>
   
   <div class="boss-numpad" id="bossNumpad">
@@ -1954,6 +1954,16 @@ function restartGame() {
 // ═══════════════════════════════════════════════════════════
 els.btnStart.addEventListener('click', () => initGame(true));
 els.btnContinue.addEventListener('click', () => initGame(false));
+
+// 모바일에서 가상 키보드 방지
+els.answerInput.addEventListener('focus', (e) => {
+  e.target.blur();
+  setTimeout(() => e.target.focus(), 0);
+});
+els.answerInput.addEventListener('click', (e) => {
+  e.preventDefault();
+});
+
 els.answerInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') submitAnswer();
 });
@@ -1970,6 +1980,15 @@ document.getElementById('numpad').addEventListener('click', e => {
     els.answerInput.value += val;
   }
   els.answerInput.focus();
+});
+
+// 모바일에서 가상 키보드 방지
+els.bossAnswerInput.addEventListener('focus', (e) => {
+  e.target.blur();
+  setTimeout(() => e.target.focus(), 0);
+});
+els.bossAnswerInput.addEventListener('click', (e) => {
+  e.preventDefault();
 });
 
 els.bossAnswerInput.addEventListener('keydown', e => {
