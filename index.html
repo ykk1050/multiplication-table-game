@@ -419,25 +419,84 @@ body {
 .boss-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.88);
   display: none;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 100;
   animation: fadeIn 0.5s ease;
+  padding: 16px;
 }
 .boss-overlay.active { display: flex; }
+
+.boss-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 32px;
+  width: 100%;
+  max-width: 860px;
+  max-height: 96vh;
+}
+
+/* ── Left: battle panel ── */
+.boss-left {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.boss-hp-container {
+  width: 100%;
+  max-width: 340px;
+}
+.boss-name {
+  font-size: 1.1rem;
+  color: var(--danger);
+  font-weight: bold;
+  margin-bottom: 6px;
+  text-align: center;
+}
+.boss-hp-bar {
+  height: 16px;
+  background: #333;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #555;
+}
+.boss-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--danger), #ff6666);
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
 
 .boss-scene {
   display: flex;
   align-items: flex-end;
-  gap: 60px;
-  margin-bottom: 30px;
+  justify-content: center;
+  gap: 24px;
 }
+.player-sprite {
+  width: 100px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.player-sprite img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.player-sprite.attacking { animation: swordSlash 0.4s ease; }
+
 .boss-sprite {
-  width: 180px;
-  height: 220px;
+  width: 150px;
+  height: 190px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -479,68 +538,53 @@ body {
   100% { opacity: 0; transform: scale(1.2); }
 }
 
-.player-sprite {
-  width: 120px;
-  height: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.player-sprite img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-.player-sprite.attacking { animation: swordSlash 0.4s ease; }
-
-.boss-hp-container {
-  width: 400px;
-  max-width: 90vw;
-  margin-bottom: 20px;
-}
-.boss-name {
-  font-size: 1.2rem;
-  color: var(--danger);
-  font-weight: bold;
-  margin-bottom: 6px;
-  text-align: center;
-}
-.boss-hp-bar {
-  height: 18px;
-  background: #333;
-  border-radius: 9px;
-  overflow: hidden;
-  border: 2px solid #555;
-}
-.boss-hp-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--danger), #ff6666);
-  border-radius: 7px;
-  transition: width 0.5s ease;
-}
-
 .boss-question {
   font-size: 2rem;
   font-weight: bold;
-  margin-bottom: 20px;
+  text-align: center;
 }
 .boss-question .op { color: var(--accent); }
 .boss-question .eq { color: var(--gold); }
 
+.boss-message {
+  font-size: 1rem;
+  height: 26px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.boss-attempts-left {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-align: center;
+}
+.boss-attempts-left.warning { color: var(--danger); font-weight: bold; }
+
+/* ── Right: input panel ── */
+.boss-right {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
 .boss-input-row {
   display: flex;
   justify-content: center;
-  gap: 10px;
 }
 .boss-answer-input {
   background: #1a1a30;
   border: 2px solid var(--panel-border);
   border-radius: 10px;
   color: var(--text);
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   text-align: center;
-  padding: 10px 20px;
-  width: 200px;
+  padding: 8px 12px;
+  width: 100%;
+  max-width: 200px;
   outline: none;
 }
 .boss-answer-input:focus { border-color: var(--accent); }
@@ -548,16 +592,16 @@ body {
 .boss-numpad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 12px;
-  max-width: 300px;
+  gap: 6px;
+  width: 100%;
+  max-width: 210px;
 }
 .boss-numpad button {
   background: #222238;
   border: 1px solid var(--panel-border);
   color: var(--text);
-  font-size: 1.4rem;
-  padding: 14px;
+  font-size: 1.3rem;
+  padding: 12px;
   border-radius: 8px;
   cursor: pointer;
   transition: 0.15s;
@@ -572,20 +616,25 @@ body {
 }
 .boss-numpad .btn-enter:hover { background: #ff4444; }
 
-.boss-message {
-  margin-top: 16px;
-  font-size: 1.1rem;
-  height: 30px;
-  font-weight: bold;
+/* ── Portrait / narrow screens: stack vertically ── */
+@media (max-width: 600px), (orientation: portrait) {
+  .boss-layout {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    max-width: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .boss-left { gap: 6px; }
+  .boss-right { flex: 0 0 auto; }
+  .boss-scene { gap: 16px; }
+  .player-sprite { width: 80px; height: 120px; }
+  .boss-sprite { width: 120px; height: 150px; }
+  .boss-question { font-size: 1.6rem; }
+  .boss-numpad { max-width: 240px; }
+  .boss-numpad button { padding: 10px; font-size: 1.2rem; }
 }
-
-.boss-attempts-left {
-  margin-top: 8px;
-  font-size: 0.9rem;
-  color: var(--text-dim);
-  letter-spacing: 1px;
-}
-.boss-attempts-left.warning { color: var(--danger); font-weight: bold; }
 
 .boss-damage-text {
   position: absolute;
@@ -1012,47 +1061,53 @@ body {
 
 <!-- ═══ Boss Overlay ═══ -->
 <div class="boss-overlay" id="bossOverlay">
-  <div class="boss-name" id="bossName">🐉 2단 수호자: 고블린</div>
-  <div class="boss-hp-container">
-    <div class="boss-hp-bar">
-      <div class="boss-hp-fill" id="bossHpFill" style="width: 100%"></div>
+  <div class="boss-layout">
+    <!-- Left: battle scene -->
+    <div class="boss-left">
+      <div class="boss-name" id="bossName">🐉 2단 수호자: 고블린</div>
+      <div class="boss-hp-container">
+        <div class="boss-hp-bar">
+          <div class="boss-hp-fill" id="bossHpFill" style="width: 100%"></div>
+        </div>
+      </div>
+      <div class="boss-scene">
+        <div class="player-sprite" id="playerSprite">
+          <img src="" id="playerImg" alt="대장장이" />
+        </div>
+        <div class="boss-sprite" id="bossSprite">
+          <img src="" id="bossImg" alt="보스" />
+          <div class="boss-attack-effect" id="bossAttackEffect">
+            <img src="attack.gif" alt="공격 임팩트" />
+          </div>
+        </div>
+      </div>
+      <div class="boss-question" id="bossQuestion">
+        <span id="bqNum1">2</span> <span class="op">×</span> <span id="bqNum2">3</span> <span class="eq">=</span> ?
+      </div>
+      <div class="boss-message" id="bossMessage"></div>
+      <div class="boss-attempts-left" id="bossAttemptsLeft"></div>
     </div>
-  </div>
-  <div class="boss-scene">
-    <div class="player-sprite" id="playerSprite">
-      <img src="" id="playerImg" alt="대장장이 — 가죽 앞치마를 입은 소년, 검을 들고 전투 자세, 판타지 캐릭터" />
-    </div>
-    <div class="boss-sprite" id="bossSprite">
-      <img src="" id="bossImg" alt="보스" />
-      <div class="boss-attack-effect" id="bossAttackEffect">
-        <img src="attack.gif" alt="공격 임팩트" />
+    <!-- Right: input panel -->
+    <div class="boss-right">
+      <div class="boss-input-row">
+        <input type="text" class="boss-answer-input" id="bossAnswerInput" maxlength="3" inputmode="none" autocomplete="off" placeholder="?" readonly />
+      </div>
+      <div class="boss-numpad" id="bossNumpad">
+        <button data-val="1">1</button>
+        <button data-val="2">2</button>
+        <button data-val="3">3</button>
+        <button data-val="4">4</button>
+        <button data-val="5">5</button>
+        <button data-val="6">6</button>
+        <button data-val="7">7</button>
+        <button data-val="8">8</button>
+        <button data-val="9">9</button>
+        <button class="btn-clear" data-val="clear">⌫</button>
+        <button data-val="0">0</button>
+        <button class="btn-enter" data-val="enter">공격!</button>
       </div>
     </div>
   </div>
-  <div class="boss-question" id="bossQuestion">
-    <span id="bqNum1">2</span> <span class="op">×</span> <span id="bqNum2">3</span> <span class="eq">=</span> ?
-  </div>
-  <div class="boss-input-row">
-    <input type="text" class="boss-answer-input" id="bossAnswerInput" maxlength="3" inputmode="none" autocomplete="off" placeholder="?" readonly />
-  </div>
-  
-  <div class="boss-numpad" id="bossNumpad">
-    <button data-val="1">1</button>
-    <button data-val="2">2</button>
-    <button data-val="3">3</button>
-    <button data-val="4">4</button>
-    <button data-val="5">5</button>
-    <button data-val="6">6</button>
-    <button data-val="7">7</button>
-    <button data-val="8">8</button>
-    <button data-val="9">9</button>
-    <button class="btn-clear" data-val="clear">⌫</button>
-    <button data-val="0">0</button>
-    <button class="btn-enter" data-val="enter">공격!</button>
-  </div>
-  
-  <div class="boss-message" id="bossMessage"></div>
-  <div class="boss-attempts-left" id="bossAttemptsLeft"></div>
 </div>
 
 <!-- ═══ Stats Overlay ═══ -->
