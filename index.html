@@ -447,6 +447,10 @@ body {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  transition: opacity 0.12s ease;
+}
+.boss-sprite.boss-img-pending > img {
+  opacity: 0;
 }
 .boss-sprite.hit { animation: bossHit 0.5s ease; }
 
@@ -1254,6 +1258,38 @@ const BOSS_DATA = [
   { name: '9단 최종 보스: 마왕',      hp: 7, img: 'boss-09-demon-lord.png',  alt: '마왕 — 거대한 뿔이 달린 악마 군주, 검은 갑옷, 보라색 불꽃 오라, 판타지 최종 보스' },
 ];
 
+
+const bossImgPreloadPromises = new Map();
+function preloadBossImage(url) {
+  if (!url) return Promise.resolve();
+  let p = bossImgPreloadPromises.get(url);
+  if (p) return p;
+  p = new Promise((resolve) => {
+    const im = new Image();
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      im.onload = im.onerror = null;
+      resolve();
+    };
+    im.onload = done;
+    im.onerror = done;
+    im.src = url;
+    if (im.complete && im.naturalWidth > 0) done();
+  });
+  bossImgPreloadPromises.set(url, p);
+  return p;
+}
+
+function maybePreloadUpcomingBoss() {
+  const dan = state.currentDan;
+  if (dan < 2 || dan > 9) return;
+  const entry = BOSS_DATA[dan - 2];
+  if (entry && entry.img) preloadBossImage(entry.img);
+}
+
+
 // ═══════════════════════════════════════════════════════════
 // 게임 상태
 // ═══════════════════════════════════════════════════════════
@@ -1408,6 +1444,7 @@ function updateQuestion() {
   els.stageLabel.textContent = `${state.currentDan}단 강화 중...`;
   const progress = ((state.currentMultiplier - 1) / 9) * 100;
   els.forgeProgressBar.style.width = progress + '%';
+  maybePreloadUpcomingBoss();
 }
 
 function updateSword() {
@@ -1640,7 +1677,7 @@ function updateBossAttemptsUI() {
   els.bossAttemptsLeft.classList.toggle('warning', left <= 1);
 }
 
-function startBoss(dan, isPhase2 = false) {
+async function startBoss(dan, isPhase2 = false) {
   const bossIdx = dan - 2;
   const boss = BOSS_DATA[bossIdx];
 
@@ -1685,14 +1722,28 @@ function startBoss(dan, isPhase2 = false) {
     els.bossName.textContent = `🐉 ${boss.name}`;
   }
   els.bossImg.alt = boss.alt;
-  els.bossImg.src = boss.img;
   els.bossHpFill.style.width = '100%';
   els.bossMessage.textContent = '';
   els.bossAnswerInput.value = '';
 
   updateBossAttemptsUI();
   updateBossQuestion();
+
+  const imgFile = boss.img;
+  const curAttr = els.bossImg.getAttribute('src') || '';
+  const alreadyShowing =
+    curAttr === imgFile ||
+    (els.bossImg.src && els.bossImg.src.replace(/^.*\//, '') === imgFile);
+  if (!alreadyShowing) els.bossSprite.classList.add('boss-img-pending');
   els.bossOverlay.classList.add('active');
+
+  await preloadBossImage(imgFile);
+  els.bossImg.src = imgFile;
+  try {
+    if (els.bossImg.decode) await els.bossImg.decode();
+  } catch (_) {}
+
+  els.bossSprite.classList.remove('boss-img-pending');
   els.bossAnswerInput.focus();
 }
 
@@ -2047,6 +2098,7 @@ els.btnBossDefeatOk.addEventListener('click', () => {
   updateSword();
   updateDanPills();
   updateHeaderStats();
+  maybePreloadUpcomingBoss();
 })();
 </script>
 </body>
