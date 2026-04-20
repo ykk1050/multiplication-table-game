@@ -1355,6 +1355,8 @@ const DEFAULT_STATE = {
   danMastery: { 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false },
   speedrunStart: null,
   inBoss: false,
+  inBossPhase2: false,
+  bossSnapshot: null,
 };
 
 const DEFAULT_STATS = {
@@ -1732,7 +1734,23 @@ function updateBossAttemptsUI() {
   els.bossAttemptsLeft.classList.toggle('warning', left <= 1);
 }
 
+function saveBossSnapshot() {
+  state.bossSnapshot = {
+    dan: bossState.dan,
+    hp: bossState.hp,
+    maxHp: bossState.maxHp,
+    questions: deepCopy(bossState.questions),
+    qIdx: bossState.qIdx,
+    wrongCount: bossState.wrongCount,
+    maxWrong: bossState.maxWrong,
+    isPhase2: bossState.isPhase2,
+  };
+}
+
 async function startBoss(dan, isPhase2 = false) {
+  state.inBoss = true;
+  state.inBossPhase2 = isPhase2;
+
   const bossIdx = dan - 2;
   const boss = BOSS_DATA[bossIdx];
 
@@ -1770,6 +1788,9 @@ async function startBoss(dan, isPhase2 = false) {
     isPhase2,
     usedDans: []
   };
+
+  saveBossSnapshot();
+  saveState();
 
   if (isPhase2) {
     els.bossName.textContent = `💀 ${boss.name} — 각성 형태`;
@@ -1893,6 +1914,7 @@ function submitBossAnswer() {
     if (bossState.wrongCount >= bossState.maxWrong) {
       // 보스 패배 처리
       els.bossAnswerInput.value = '';
+      saveBossSnapshot();
       saveState();
       updateHeaderStats();
       setTimeout(() => defeatBoss(), 900);
@@ -1905,12 +1927,17 @@ function submitBossAnswer() {
   }
 
   els.bossAnswerInput.value = '';
+  saveBossSnapshot();
   saveState();
   updateHeaderStats();
 }
 
 function defeatBoss() {
   els.bossOverlay.classList.remove('active');
+
+  state.inBoss = false;
+  state.inBossPhase2 = false;
+  state.bossSnapshot = null;
 
   const dan = bossState.dan;
   const boss = BOSS_DATA[dan - 2];
@@ -1936,6 +1963,10 @@ function defeatBoss() {
 
 function finishBoss() {
   els.bossOverlay.classList.remove('active');
+
+  state.inBoss = false;
+  state.inBossPhase2 = false;
+  state.bossSnapshot = null;
 
   if (state.currentDan >= 9) {
     endGame();
@@ -2017,6 +2048,53 @@ function closeStats() {
   els.statsOverlay.classList.remove('active');
 }
 
+async function resumeBossFromSnapshot(snapshot) {
+  const boss = BOSS_DATA[snapshot.dan - 2];
+
+  bossState = {
+    dan: snapshot.dan,
+    hp: snapshot.hp,
+    maxHp: snapshot.maxHp,
+    questions: deepCopy(snapshot.questions),
+    qIdx: snapshot.qIdx,
+    wrongCount: snapshot.wrongCount,
+    maxWrong: snapshot.maxWrong,
+    isPhase2: snapshot.isPhase2,
+    usedDans: []
+  };
+
+  if (snapshot.isPhase2) {
+    els.bossName.textContent = `💀 ${boss.name} — 각성 형태`;
+  } else {
+    els.bossName.textContent = `🐉 ${boss.name}`;
+  }
+  els.bossImg.alt = boss.alt;
+  const pct = Math.max(0, (bossState.hp / bossState.maxHp) * 100);
+  els.bossHpFill.style.width = pct + '%';
+  els.bossMessage.textContent = '';
+  els.bossAnswerInput.value = '';
+
+  updateBossAttemptsUI();
+  updateBossQuestion();
+
+  const imgFile = boss.img;
+  const curAttr = els.bossImg.getAttribute('src') || '';
+  const alreadyShowing =
+    curAttr === imgFile ||
+    (els.bossImg.src && els.bossImg.src.replace(/^.*\//, '') === imgFile);
+  if (!alreadyShowing) els.bossSprite.classList.add('boss-img-pending');
+  els.bossOverlay.classList.add('active');
+
+  await preloadBossImage(imgFile);
+  els.bossImg.src = imgFile;
+  try {
+    if (els.bossImg.decode) await els.bossImg.decode();
+  } catch (_) {}
+
+  els.bossSprite.classList.remove('boss-img-pending');
+  els.bossAnswerInput.focus();
+}
+
 // ═══════════════════════════════════════════════════════════
 // 초기화 / 시작
 // ═══════════════════════════════════════════════════════════
@@ -2024,6 +2102,10 @@ function initGame(fresh) {
   if (fresh) {
     state = deepCopy(DEFAULT_STATE);
   }
+
+  const resumeBoss = !fresh && state.inBoss;
+  const resumeBossPhase2 = !fresh && !!state.inBossPhase2;
+
   state.speedrunStart = Date.now();
   saveState();
 
@@ -2037,7 +2119,17 @@ function initGame(fresh) {
   els.startOverlay.classList.add('hidden');
   setTimeout(() => { els.startOverlay.style.display = 'none'; }, 500);
 
-  els.answerInput.focus();
+  if (resumeBoss) {
+    setTimeout(() => {
+      if (state.bossSnapshot) {
+        resumeBossFromSnapshot(state.bossSnapshot);
+      } else {
+        startBoss(state.currentDan, resumeBossPhase2);
+      }
+    }, 600);
+  } else {
+    els.answerInput.focus();
+  }
 }
 
 function restartGame() {
